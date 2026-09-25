@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:ftp="http://www.mulesoft.org/schema/mule/ftp"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/ftp http://www.mulesoft.org/schema/mule/ftp/current/mule-ftp.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="4d0d49d4-77a2-408d-8a94-64d09a288b2a" >
+		<http:request-connection host="${system.api.host}" port="${system.api.port}" />
+	</http:request-config>
+	<ftp:config name="FTP_Config" doc:name="FTP Config" doc:id="6fabd2a9-d46a-42cf-bc93-1ef1bacbeb2a" >
+		<ftp:connection host="${ftp.host}" username="${ftp.username}" password="secure::ftp.password" port="${ftp.port}"/>
+	</ftp:config>
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="4b5bb66c-2ae3-4366-9216-79817b253e7a" file="secure.properties" key="${encryption.key}" />
+	<configuration-properties doc:name="Configuration properties" doc:id="38d99040-6fdf-4865-b849-7ed26d477133" file="application.properties" />
+	<flow name="user-post-integration-flow" doc:id="d568f29d-b11a-4df0-8bdd-60954908653f" >
+		<scheduler doc:name="Scheduler" doc:id="c50e4cfe-2fd8-4a3e-9f62-23bd84332ff0" >
+			<scheduling-strategy >
+				<cron expression="0/20 * * * * ?" timeZone="Asia/Kolkata" />
+			</scheduling-strategy>
+		</scheduler>
+		<logger level="INFO" doc:name="Log Flow Start" doc:id="7abb0eea-5d8c-4b53-9a35-a1eceb91aa52" message="User Post Integration Flow started"/>
+		<http:request method="GET" doc:name="GET users" doc:id="953a9017-9bb4-480b-8cec-8097bf625e89" config-ref="HTTP_Request_configuration" path="/users"/>
+		<logger level="INFO" doc:name="Log Get Users End" doc:id="afc5a833-43e5-4cca-a588-720686b0800e" message="User System API call completed"/>
+		<set-variable value="#[payload]" doc:name="users" doc:id="d6cbae42-bcca-4327-bf10-56a076f4bbf4" variableName="users"/>
+		<set-variable value="#[%dw 2.0&#10;output application/java&#10;---&#10;[]]" doc:name="All posts" doc:id="91632913-770c-4bcb-8d9d-b6e64758df7c" variableName="allPosts"/>
+		<foreach doc:name="For Each users" doc:id="82fc557f-1853-4ed0-8e0a-bcd7e17975cb" collection="#[payload]">
+			<http:request method="GET" doc:name="GET user posts" doc:id="d5220352-fb31-4df9-bd9b-15f964c0c56a" config-ref="HTTP_Request_configuration" path="/posts" >
+				<http:query-params ><![CDATA[#[output application/java
+---
+{
+	userId : payload.id
+}]]]></http:query-params>
+			</http:request>
+			<set-variable value="#[%dw 2.0&#10;output application/java&#10;---&#10;vars.allPosts ++ payload]" doc:name="Set Variable" doc:id="115529ed-f494-47cf-b0a9-b54192907a2d" variableName="allPosts" />
+		</foreach>
+		<try doc:name="Try" doc:id="bbe0cadb-47cc-4dbc-9c70-5cd26e8db34b" >
+			<logger level="INFO" doc:name="Logger" doc:id="1f728d6f-ce3c-47e1-ba51-762d28c2a3ed" message="Payload before DataWeave: #[payload]"/>
+			<ee:transform doc:name="Transform Users And Posts" doc:id="fb566eb1-8f08-409f-8d99-901f41981ea9">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/csv header=true
+---
+vars.allPosts map (post) -> do {
+    var user = (vars.users filter (u) -> u.id == post.userId)[0]
+    ---
+    {
+        User_ID: user.id,
+        User_Name: user.name,
+        Username: user.username,
+        User_Email: user.email,
+        Address_Street: user.address.street,
+        Address_Suite: user.address.suite,
+        Address_City: user.address.city,
+        Address_Zipcode: user.address.zipcode,
+        Phone: user.phone,
+        Website: user.website,
+        Company_Name: user.company.name,
+        Post_ID: post.id,
+        Post_Title: post.title,
+        Post_Body: post.body,
+        Current_Date: now() as String {format: "yyyy-MM-dd"}
+    }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			<logger level="INFO" doc:name="Logger" doc:id="7b8cb5b8-53d0-464e-bfdc-4073ab5655a2" message="All posts collected: #[vars.allPosts]"/>
+			<error-handler >
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="52327367-cb82-474f-a591-0092cb199a37" type="EXPRESSION">
+					<logger level="INFO" doc:name="Logger" doc:id="87948e5a-d7c7-461a-9f8d-f0ca63588789" message="DataWeave transformation failed: #[error.description]"/>
+				</on-error-propagate>
+			</error-handler>
+		</try>
+		<try doc:name="Try" doc:id="6d3b2bec-f70a-488d-b66b-5ea9d4d757c5" >
+			<ftp:write doc:name="Write CSV To FTP" doc:id="45078246-a739-49b4-ba9b-1656cc6a5805" config-ref="FTP_Config" path="#[p('ftp.directory') ++ 'users_posts_' ++ (now() as String {format: 'yyyyMMdd_HHmmss'}) ++ '.csv']" />
+			<error-handler >
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="bef5ea3d-f83d-4044-932d-43a3853efae3" type="FTP:CONNECTIVITY">
+					<logger level="ERROR" doc:name="Logger" doc:id="0c3de561-587e-4ae2-a752-a569431c2772" message="FTP transfer failed: #[error.description]"/>
+				</on-error-propagate>
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="205476b7-cdd7-422a-9c68-afc4bba21e00" type="FTP:INVALID_CREDENTIALS">
+					<logger level="ERROR" doc:name="Log FTP Invalid Credentials" doc:id="30b244e7-b6eb-403d-81ed-306a050b62eb" message="FTP authentication failed: #[error.description]"/>
+				</on-error-propagate>
+			</error-handler>
+		</try>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="7cae54e3-ad58-4c48-8805-7ebe50dcb504" type="HTTP:CONNECTIVITY">
+				<logger level="ERROR" doc:name="Logger" doc:id="937c1c8e-4309-46df-9b32-28401973b698" message="Source API failure: #[error.description]"/>
+				<set-payload value='#[{&#10;    error: "Source API failure",&#10;    message: error.description&#10;}]' doc:name="Set Payload" doc:id="5ffb3a79-6203-42bb-8d80-76891d454d4e" />
+			</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="5e6df184-928a-492a-9f83-913d93883949" type="ANY">
+				<logger level="ERROR" doc:name="Logger" doc:id="e6ed69ec-ad91-4870-8069-58f6497837f0" message="Unexpected error: #[error.description]"/>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>
