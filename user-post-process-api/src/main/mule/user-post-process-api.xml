@@ -11,7 +11,7 @@ http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/sc
 		<http:request-connection host="${system.api.host}" port="${system.api.port}" />
 	</http:request-config>
 	<ftp:config name="FTP_Config" doc:name="FTP Config" doc:id="6fabd2a9-d46a-42cf-bc93-1ef1bacbeb2a" >
-		<ftp:connection host="${ftp.host}" username="${ftp.username}" password="secure::ftp.password" port="${ftp.port}"/>
+		<ftp:connection host="${ftp.host}" username="${ftp.username}" password="${secure::ftp.password}" port="${ftp.port}"/>
 	</ftp:config>
 	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="4b5bb66c-2ae3-4366-9216-79817b253e7a" file="secure.properties" key="${encryption.key}" />
 	<configuration-properties doc:name="Configuration properties" doc:id="38d99040-6fdf-4865-b849-7ed26d477133" file="application.properties" />
