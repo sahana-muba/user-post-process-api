@@ -14,7 +14,7 @@ http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/sc
 		<ftp:connection host="${ftp.host}" username="${ftp.username}" password="${secure::ftp.password}" port="${ftp.port}"/>
 	</ftp:config>
 	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="4b5bb66c-2ae3-4366-9216-79817b253e7a" file="secure.properties" key="${encryption.key}" />
-	<configuration-properties doc:name="Configuration properties" doc:id="38d99040-6fdf-4865-b849-7ed26d477133" file="application.properties" />
+	<configuration-properties doc:name="Configuration properties" doc:id="38d99040-6fdf-4865-b849-7ed26d477133" file="${properties.file}" />
 	<flow name="user-post-integration-flow" doc:id="d568f29d-b11a-4df0-8bdd-60954908653f" >
 		<scheduler doc:name="Scheduler" doc:id="c50e4cfe-2fd8-4a3e-9f62-23bd84332ff0" >
 			<scheduling-strategy >

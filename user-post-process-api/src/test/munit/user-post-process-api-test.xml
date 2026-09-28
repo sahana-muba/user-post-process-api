@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="user-post-process-api-test.xml" />
+	<munit:test name="user-post-process-api-test-user-post-integration-flowTest" doc:id="97a34967-fa1f-48b0-8766-69aab07195af" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when" doc:id="9c61ebfe-5209-44e3-b3ee-f7cedeb9146f" processor="http:request">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="GET" attributeName="method" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value='#[[&#10;  {&#10;    "id": 1,&#10;    "name": "Test User",&#10;    "username": "testuser",&#10;    "email": "test@example.com",&#10;    "address": {&#10;      "street": "Test Street",&#10;      "suite": "Suite 1",&#10;      "city": "Test City",&#10;      "zipcode": "12345"&#10;    },&#10;    "phone": "123456789",&#10;    "website": "test.com",&#10;    "company": {&#10;      "name": "Test Company"&#10;    }&#10;  }&#10;]]' />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Mock when" doc:id="6de38ce9-9edc-4e69-a1f2-b2f5c8ca36af" processor="http:request">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="GET" attributeName="method" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value='#[[&#10;  {&#10;    "userId": 1,&#10;    "id": 1,&#10;    "title": "Test Post",&#10;    "body": "Test body"&#10;  }&#10;]]' />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to user-post-integration-flow" doc:id="58cd73b8-2141-4ecd-aefd-0c812ed09b1d" name="user-post-integration-flow"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify call" doc:id="3db9d00c-2c31-40f0-9f60-f5a70b56718e" processor="http:request">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="/users" attributeName="path" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="Verify call" doc:id="a3571532-fe33-42a6-8606-1f2e7ba41110" processor="http:request">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="/posts" attributeName="path" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>
